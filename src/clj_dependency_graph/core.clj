@@ -1,5 +1,6 @@
 (ns clj-dependency-graph.core
   (:require [clojure.zip :as z]
+            [clojure.java.shell :as shell]
             [me.raynes.fs :as fs]))
 
 (def f "~/Documents/tech/repos/camunda-cli-tool/src/camunda_cli_tool/")
@@ -39,11 +40,20 @@
 (defn project-dependencies [proj-name fname]
   (filter (partial internal-dependency? proj-name) (all-dependencies fname)))
 
-(defn serialize-dependencies! [proj-name fname]
-  (spit "test.txt" "")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Make graph
+
+(defn serialize-dependencies! [proj-name fname dotfile]
+  (spit dotfile "digraph {\n")
   (let [ns (ns-name fname)]
     (doseq [dep (project-dependencies proj-name fname)]
-      (spit "test.txt" (str ns " -> " dep "\n") :append true))))
+      (spit dotfile (str "\"" ns "\" -> \"" dep "\";\n") :append true)))
+  (spit dotfile "}\n" :append true))
+
+(defn make-graph [dotfile outfile]
+  (shell/sh "dot" "-Tpng" dotfile "-o" outfile))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; List files
 
 (defn dir-files [path]
   (->> path
