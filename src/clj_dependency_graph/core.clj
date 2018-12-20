@@ -6,7 +6,10 @@
 (def mock-repo "~/Documents/tech/repos/camunda-cli-tool/")
 
 (defn at-require [zp]
-  (-> zp z/down z/right z/right z/down))
+  (let [third (-> zp z/down z/right z/right)]
+    (if (z/down third)
+      (-> third z/down)
+      (-> third z/right z/down))))
 
 (defn ns-zipper [fname]
   (->> fname
