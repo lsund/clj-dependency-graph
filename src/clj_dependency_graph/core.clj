@@ -3,7 +3,7 @@
             [clojure.java.shell :as shell]
             [me.raynes.fs :as fs]))
 
-(def f "~/Documents/tech/repos/camunda-cli-tool/src/camunda_cli_tool/")
+(def mock-repo "~/Documents/tech/repos/camunda-cli-tool/")
 
 (defn at-require [zp]
   (-> zp z/down z/right z/right z/down))
@@ -15,7 +15,7 @@
        read-string
        (z/zipper sequential? seq (fn [_ c] c))))
 
-(defn ns-name [fname]
+(defn file-ns-name [fname]
   (-> fname ns-zipper z/down z/right first))
 
 (defn heads
@@ -43,20 +43,33 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Make graph
 
-(defn serialize-dependencies! [proj-name fname dotfile]
+(defn serialize-dependencies! [proj-name files dotfile]
   (spit dotfile "digraph {\n")
-  (let [ns (ns-name fname)]
-    (doseq [dep (project-dependencies proj-name fname)]
-      (spit dotfile (str "\"" ns "\" -> \"" dep "\";\n") :append true)))
+  (doseq [file files]
+    (let [ns (file-ns-name file)]
+      (doseq [dep (project-dependencies proj-name file)]
+        (spit dotfile (str "\"" ns "\" -> \"" dep "\";\n") :append true))))
   (spit dotfile "}\n" :append true))
 
 (defn make-graph [dotfile outfile]
   (shell/sh "dot" "-Tpng" dotfile "-o" outfile))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; List files
 
-(defn dir-files [path]
-  (->> path
+(defn dir-files [repo]
+  (->> repo
        fs/expand-home
        fs/iterate-dir
        (map (fn [[base-dir _ files]] (for [file files] (str base-dir "/" file))))))
+
+(defn dir-clj-src-files [repo]
+  (println "Guessing root directory...")
+  (println "Generating dependency graph from './src'")
+  (apply concat (dir-files (str repo "/src"))))
+
+(defn generate [repo]
+  (serialize-dependencies! (fs/base-name repo)
+                           (dir-clj-src-files repo)
+                           "resources/data.dot")
+  (make-graph "resources/data.dot" "resources/data.png"))
