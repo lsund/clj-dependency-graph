@@ -3,8 +3,11 @@
             [clojure.java.shell :as shell]
             [me.raynes.fs :as fs]))
 
-(defn at-require [zp]
-  (-> zp z/down z/right z/right z/down))
+(defn find-require [zipper]
+  (loop [zp (z/down zipper)]
+    (if (= (first (z/down zp)) :require)
+      (z/down zp)
+      (recur (z/right zp)))))
 
 (defn ns-zipper [fname]
   (->> fname
