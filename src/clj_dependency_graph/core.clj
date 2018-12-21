@@ -87,13 +87,19 @@
   (fs/mkdir "resources")
   (fs/mkdir "resources/dot")
   (let [dotfile (str "resources/dot/" (fs/base-name out-name true) ".dot")
-        pngfile (str (fs/base-name out-name true) ".png")]
-    (serialize-dependencies! (directory-clojure-src-files src-dir) dotfile)
-    (make-graph dotfile pngfile)))
+        pngfile (str (fs/base-name out-name true) ".png")
+        clj-files (directory-clojure-src-files src-dir)]
+    (if (> (count clj-files) 2)
+      (do
+        (serialize-dependencies! clj-files dotfile)
+        (make-graph dotfile pngfile)
+        (println (str "Generated dependency graph: " pngfile)))
+      (println (str "Less than two clojure files in " src-dir ". Not generating graph.")))))
 
 (defn -main [& args]
   (if (= (count args) 2)
-    (apply generate args)
+    (if (fs/exists? (second args))
+      (apply generate args)
+      (println (str "No graph genrated. " (second args) " does not exist.")))
     (println "usage: ./clj-dependency-graph OUTFILE SRCDIR"))
-  (println (str "Generated dependency graph: " (str (fs/base-name (first args) true) ".png")))
   (System/exit 0))
