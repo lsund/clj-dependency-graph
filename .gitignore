@@ -10,5 +10,5 @@ pom.xml.asc
 .hgignore
 .hg/
 todo.md
-resources/data.png
-resources/data.dot
+resources/png
+resources/dot

@@ -40,8 +40,8 @@
   (let [split (-> ns name (string/split #"\."))]
     (case part
       :absolute ns
-      :base (first split)
-      :relative (last split))))
+      :root (first split)
+      :base (string/join "." (rest split)))))
 
 (defn file-namespace-name [fname part]
   (namespace-name (-> fname ns-zipper z/down z/right first) part))
@@ -61,9 +61,9 @@
 (defn serialize-dependencies! [files dotfile]
   (spit dotfile "digraph {\n")
   (doseq [file files]
-    (let [relative-ns (file-namespace-name file :relative)]
-      (doseq [dep (project-dependencies (file-namespace-name file :base) file)]
-        (spit dotfile (str "\"" relative-ns "\" -> \"" (namespace-name  dep :relative) "\";\n")
+    (let [base-ns (file-namespace-name file :base)]
+      (doseq [dep (project-dependencies (file-namespace-name file :root) file)]
+        (spit dotfile (str "\"" base-ns "\" -> \"" (namespace-name  dep :base) "\";\n")
               :append true))))
   (spit dotfile "}\n" :append true))
 
@@ -73,16 +73,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; List files
 
-(defn dir-files [repo]
+(defn directory-files [repo]
   (->> repo
        fs/expand-home
        fs/iterate-dir
        (map (fn [[base-dir _ files]] (for [file files] (str base-dir "/" file))))))
 
-(defn dir-clj-src-files [repo]
-  (apply concat (dir-files repo)))
+(defn directory-clojure-src-files [repo]
+  (filter #(=  (fs/extension %) ".clj") (apply concat (directory-files repo))))
 
-(defn generate [repo]
+(defn generate [out-name repo]
   (fs/mkdir "resources")
-  (serialize-dependencies! (dir-clj-src-files repo) "resources/data.dot")
-  (make-graph "resources/data.dot" "resources/data.png"))
+  (fs/mkdir "resources/png")
+  (fs/mkdir "resources/dot")
+  (let [dotfile (str "resources/dot/" (fs/base-name out-name true) ".dot")
+        pngfile (str "resources/png/" (fs/base-name out-name true) ".png")]
+    (serialize-dependencies! (directory-clojure-src-files repo) dotfile)
+    (make-graph dotfile pngfile)))
