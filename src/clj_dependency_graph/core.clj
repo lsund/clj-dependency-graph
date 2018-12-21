@@ -5,11 +5,11 @@
 
 (def mock-repo "~/Documents/tech/repos/camunda-cli-tool/")
 
-(defn at-require [zp]
-  (let [third (-> zp z/down z/right z/right)]
-    (if (z/down third)
-      (-> third z/down)
-      (-> third z/right z/down))))
+(defn find-require [zipper]
+  (loop [zp (z/down zipper)]
+    (if (= (first (z/down zp)) :require)
+      (z/down zp)
+      (recur (z/right zp)))))
 
 (defn ns-zipper [fname]
   (->> fname
@@ -32,7 +32,7 @@
         (conj xs x)))))
 
 (defn all-dependencies [fname]
-  (filter some? (heads (at-require (ns-zipper fname)))))
+  (filter some? (heads (find-require (ns-zipper fname)))))
 
 (defn prefix? [p s]
   (some? (re-matches (re-pattern (str "^" p ".*")) s)))
