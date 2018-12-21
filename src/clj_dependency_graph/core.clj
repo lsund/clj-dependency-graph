@@ -3,8 +3,6 @@
             [clojure.java.shell :as shell]
             [me.raynes.fs :as fs]))
 
-(def mock-repo "~/Documents/tech/repos/camunda-cli-tool/")
-
 (defn at-require [zp]
   (-> zp z/down z/right z/right z/down))
 
@@ -64,11 +62,10 @@
        (map (fn [[base-dir _ files]] (for [file files] (str base-dir "/" file))))))
 
 (defn dir-clj-src-files [repo]
-  (println "Guessing root directory...")
-  (println "Generating dependency graph from './src'")
-  (apply concat (dir-files (str repo "/src"))))
+  (apply concat (dir-files repo)))
 
 (defn generate [repo]
+  (fs/mkdir "resources")
   (serialize-dependencies! (fs/base-name repo)
                            (dir-clj-src-files repo)
                            "resources/data.dot")
