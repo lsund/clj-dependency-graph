@@ -2,4 +2,6 @@
   :description "FIXME: write description"
   :url "http://github.com/lsund/clj-dependency-graph"
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [me.raynes/fs "1.4.6"]])
+                 [me.raynes/fs "1.4.6"]]
+  :main clj-dependency-graph.core
+  :aot [clj-dependency-graph.core])

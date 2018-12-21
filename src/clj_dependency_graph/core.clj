@@ -2,7 +2,8 @@
   (:require [clojure.zip :as z]
             [clojure.java.shell :as shell]
             [clojure.string :as string]
-            [me.raynes.fs :as fs]))
+            [me.raynes.fs :as fs])
+  (:gen-class))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Find dependencies
@@ -73,20 +74,26 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; List files
 
-(defn directory-files [repo]
-  (->> repo
+(defn directory-files [src-dir]
+  (->> src-dir
        fs/expand-home
        fs/iterate-dir
        (map (fn [[base-dir _ files]] (for [file files] (str base-dir "/" file))))))
 
-(defn directory-clojure-src-files [repo]
-  (filter #(=  (fs/extension %) ".clj") (apply concat (directory-files repo))))
+(defn directory-clojure-src-files [src-dir]
+  (filter #(=  (fs/extension %) ".clj") (apply concat (directory-files src-dir))))
 
-(defn generate [out-name repo]
+(defn generate [out-name src-dir]
   (fs/mkdir "resources")
-  (fs/mkdir "resources/png")
   (fs/mkdir "resources/dot")
   (let [dotfile (str "resources/dot/" (fs/base-name out-name true) ".dot")
-        pngfile (str "resources/png/" (fs/base-name out-name true) ".png")]
-    (serialize-dependencies! (directory-clojure-src-files repo) dotfile)
+        pngfile (str (fs/base-name out-name true) ".png")]
+    (serialize-dependencies! (directory-clojure-src-files src-dir) dotfile)
     (make-graph dotfile pngfile)))
+
+(defn -main [& args]
+  (if (= (count args) 2)
+    (apply generate args)
+    (println "usage: ./clj-dependency-graph OUTFILE SRCDIR"))
+  (println (str "Generated dependency graph: " (str (fs/base-name (first args) true) ".png")))
+  (System/exit 0))
